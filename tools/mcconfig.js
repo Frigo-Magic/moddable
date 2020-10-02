@@ -576,7 +576,7 @@ class XcodeFile extends PrerequisiteFile {
 		if (tool.stringFiles.length)
 			this.addResource(tool.resourcesPath + "/locals.mhi");
 
-		this.addResource(tool.mainPath + "/ios/Assets.xcassets", true);
+		this.addResource(tool.mainPath + (tool.environment.IOS_ASSETS || "/ios/Assets.xcassets"), true);
 	
 		var path = tool.moddablePath + "/../moddableprojects/modules/piu/PC/ios/support/Xcode.txt";
 		var template = tool.readFileString(path);

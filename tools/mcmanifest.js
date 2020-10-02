@@ -1121,7 +1121,7 @@ class ResourcesRule extends Rule {
 					}
 				}
 			}
-			if (tool.platform == "x-ios" && (parts.extension == ".framework" || parts.extension == ".bundle")) {
+			if (tool.platform == "x-ios" && (parts.extension == ".framework" || parts.extension == ".xcframework" || parts.extension == ".bundle")) {
 				this.appendFramework(tool.resourcesFiles, target + parts.extension, source, include);
 				return;
 			}
