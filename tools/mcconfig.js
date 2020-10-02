@@ -512,6 +512,11 @@ class XcodeFile extends PrerequisiteFile {
 				parts.copyFileID = this.id++;
 			parts.fileType = "wrapper.framework";
 		}
+		else if (parts.extension == ".xcframework") {
+			if (folder && folder.indexOf("embed")>=0)
+				parts.copyFileID = this.id++;
+			parts.fileType = "wrapper.xcframework";
+		}		
 		else if (parts.extension == ".bundle") {
 			parts.copyFileID = this.id++;
 			parts.fileType = "wrapper.plug-in";
@@ -666,7 +671,7 @@ class XcodeFile extends PrerequisiteFile {
 		this.write(file.name);
 		this.write(file.extension);
 		this.line(" */; };");
-		if (file.fileType == "wrapper.framework" && file.copyFileID) {
+		if ((file.fileType == "wrapper.framework" || file.fileType == "wrapper.xcframework") && file.copyFileID) {
 			this.write("\t\t");
 			this.writeID(file.copyFileID);
 			this.write(" /* ");
@@ -681,7 +686,7 @@ class XcodeFile extends PrerequisiteFile {
 		}
 	}
 	generatePBXCopyFilesBuildPhase(file) {
-		if (file.fileType == "wrapper.framework" && file.copyFileID) {
+		if ((file.fileType == "wrapper.framework" || file.fileType == "wrapper.xcframework") && file.copyFileID) {
 			this.write("\t\t\t\t");
 			this.writeID(file.copyFileID);
 			this.write(" /* ");
@@ -691,7 +696,7 @@ class XcodeFile extends PrerequisiteFile {
 		}
 	}
 	generatePBXFrameworksBuildPhase(file) {
-		if (file.fileType == "wrapper.framework") {
+		if (file.fileType == "wrapper.framework" || file.fileType == "wrapper.xcframework") {
 			this.write("\t\t\t\t");
 			this.writeID(file.buildFileID);
 			this.write(" /* ");
@@ -701,7 +706,7 @@ class XcodeFile extends PrerequisiteFile {
 		}
 	}
 	generatePBXResourcesBuildPhase(file) {
-		if (file.fileType != "wrapper.framework") {
+		if (file.fileType != "wrapper.framework" && file.fileType != "wrapper.xcframework") {
 			this.write("\t\t\t\t");
 			this.writeID(file.buildFileID);
 			this.write(" /* ");
