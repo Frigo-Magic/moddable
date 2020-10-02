@@ -1027,7 +1027,7 @@ export default class extends Tool {
 		this.strip = this.manifest.strip;
 		
 		var name = this.environment.NAME
-		if (this.platform == "x-mac")
+		if (this.platform.indexOf("x-mac") == 0)
 			this.binPath = this.createDirectories(this.outputPath, "bin", name + ".app");
 		else if ((this.platform == "x-lin") || (this.platform == "x-win") || (this.platform.startsWith("x-cli-")))
 			this.binPath = this.createDirectories(this.outputPath, "bin");
@@ -1082,7 +1082,7 @@ export default class extends Tool {
 			this.dataPath = this.resourcesPath = this.tmpPath + this.slash + "resources";
 			this.createDirectory(this.resourcesPath);
 		}	
-		else if (this.platform == "x-mac") {
+		else if (this.platform.indexOf("x-mac") == 0) {
 			var path = this.binPath + "/Contents";
 			this.createDirectory(path);
 			this.binPath = path;
