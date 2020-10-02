@@ -582,6 +582,7 @@ class XcodeFile extends PrerequisiteFile {
 		var template = tool.readFileString(path);
 		
 		template = template.replace(/#DEVELOPMENT_TEAM#/g, tool.environment.DEVELOPMENT_TEAM);
+		template = template.replace(/#MAIN_PATH#/g, tool.mainPath);
 		template = template.replace(/#INFOPLIST_FILE#/g, tool.mainPath + "/ios/info.plist");
 		template = template.replace(/#NAME#/g, tool.environment.NAME);
 		template = template.replace(/#ORGANIZATIONNAME#/g, tool.environment.ORGANIZATION);
