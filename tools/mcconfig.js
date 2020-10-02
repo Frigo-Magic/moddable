@@ -586,6 +586,7 @@ class XcodeFile extends PrerequisiteFile {
 		template = template.replace(/#NAME#/g, tool.environment.NAME);
 		template = template.replace(/#ORGANIZATIONNAME#/g, tool.environment.ORGANIZATION);
 		template = template.replace(/#PRODUCT_BUNDLE_IDENTIFIER#/g, tool.environment.DOT_SIGNATURE);
+		template = template.replace(/#PRODUCT_BUNDLE_VERSION#/g, tool.environment.PRODUCT_BUNDLE_VERSION);
 		template = template.replace(/#IPHONEOS_DEPLOYMENT_TARGET#/g, tool.environment.IPHONEOS_DEPLOYMENT_TARGET || "8.0");
 		template = template.replace(/#PUSH_ENABLED#/g, tool.environment.PUSH_ENABLED || "0");
 		if (tool.environment.PUSH_ENABLED == "1" && tool.environment.CODE_SIGN_ENTITLEMENTS) {
