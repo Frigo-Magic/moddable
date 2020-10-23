@@ -1010,14 +1010,14 @@ void fxForNodeBind(void* it, void* param)
 void fxForInForOfNodeBind(void* it, void* param) 
 {
 	txForInForOfNode* self = it;
-	fxBinderPushVariables(param, 6);
+	fxBinderPushVariables(param, 5);
 	fxScopeBinding(self->scope, param);
 	fxScopeBindDefineNodes(self->scope, param);
 	fxNodeDispatchBind(self->reference, param);
 	fxNodeDispatchBind(self->expression, param);
 	fxNodeDispatchBind(self->statement, param);
 	fxScopeBound(self->scope, param);
-	fxBinderPopVariables(param, 6);
+	fxBinderPopVariables(param, 5);
 }
 
 void fxFunctionNodeBind(void* it, void* param) 
@@ -1138,15 +1138,18 @@ void fxParamsBindingNodeBind(void* it, void* param)
 	txBinder* binder = param;
 	txScope* functionScope = binder->scope;
 	txFunctionNode* functionNode = (txFunctionNode*)(functionScope->node);
+	txInteger count = self->items->length;
 	if (functionNode->flags & mxGetterFlag) {
-		txInteger count = self->items->length;
 		if (count != 0)
 			fxReportLineError(binder->parser, self->line, "invalid getter arguments");
 	}
 	else if (functionNode->flags & mxSetterFlag) {
-		txInteger count = self->items->length;
 		if ((count != 1) || (self->items->first->description->token == XS_TOKEN_REST_BINDING))
 			fxReportLineError(binder->parser, self->line, "invalid setter arguments");
+	}
+	else {
+		if (count > 255)
+			fxReportLineError(binder->parser, self->line, "too many arguments");
 	}
 	if (functionNode->flags & mxArgumentsFlag) {
 		txNode* item;
