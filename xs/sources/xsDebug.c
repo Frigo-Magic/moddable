@@ -37,6 +37,8 @@
 
 #include "xsAll.h"
 
+#undef mxNoConsole
+
 #if defined(DEBUG_EFM)
 char _lastDebugStrBuffer[256];
 char _debugStrBuffer[256];

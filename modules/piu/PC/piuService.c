@@ -202,6 +202,7 @@ void ServiceThreadCreate(xsMachine* the)
 	JNIEnv* jenv = the->jenv;
 	jobject jbytes = (*jenv)->NewDirectByteBuffer(jenv, thread, sizeof(ServiceThreadRecord));
 	jobject jthread = (*jenv)->NewObject(jenv, jPiuThreadClass, jPiuThreadConstructor, jbytes);
+	xsAndroidException("Java: ServiceThreadCreate new jPiuThreadClass failed!");
 	thread->jthread = (*jenv)->NewGlobalRef(jenv, jthread);
 	(*jenv)->CallVoidMethod(jenv, jthread, jPiuThread_start);
 	(*jenv)->DeleteLocalRef(jenv, jthread);

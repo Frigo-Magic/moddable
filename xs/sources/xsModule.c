@@ -176,6 +176,31 @@ void fxAwaitImport(txMachine* the, txBoolean defaultFlag)
 	the->stack = stack;
 }
 
+extern void fxAwaitImport2(txMachine* the, txCallback fulFill, txCallback reject);
+
+void fxAwaitImport2 (txMachine* the, txCallback fulFill, txCallback reject)
+{
+	txSlot* stack = the->stack;
+	txSlot* realm = mxModuleInstanceInternal(mxProgram.value.reference)->value.module.realm;
+	txID defaultID;
+	txSlot* export;
+	mxTry(the) {
+		fxToString(the, stack);
+		fxRunImport(the, realm, XS_NO_ID);
+		mxDub();
+		fxGetID(the, mxID(_then));
+		mxCall();
+		fxNewHostFunction(the, fulFill, 1, XS_NO_ID);
+		fxNewHostFunction(the, reject, 1, XS_NO_ID);
+		mxRunCount(2);
+		mxPop();
+	}
+	mxCatch(the) {
+		fxJump(the);
+	}
+	the->stack = stack;
+}
+
 void fxCompleteModule(txMachine* the, txSlot* realm, txSlot* module, txSlot* exception)
 {
 	txSlot** address = &(mxRunningModules(realm)->value.reference->next);

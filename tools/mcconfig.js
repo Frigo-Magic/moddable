@@ -517,6 +517,9 @@ class XcodeFile extends PrerequisiteFile {
 				parts.copyFileID = this.id++;
 			parts.fileType = "wrapper.xcframework";
 		}		
+		else if (parts.extension == ".storyboard") {
+			parts.fileType = "file.storyboard";
+		}		
 		else if (parts.extension == ".bundle") {
 			parts.copyFileID = this.id++;
 			parts.fileType = "wrapper.plug-in";
