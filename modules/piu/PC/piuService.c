@@ -197,16 +197,31 @@ void ServiceThreadCreate(xsMachine* the)
 	xsResult = xsNewHostObject(NULL);
 	xsSetHostData(xsResult, thread);
 #if mxAndroid
-    pthread_mutex_init(&(thread->mutex), NULL);
-    pthread_mutex_lock(&(thread->mutex));
+	jobject jbytes = NULL;
+	jobject jthread = NULL;
 	JNIEnv* jenv = the->jenv;
-	jobject jbytes = (*jenv)->NewDirectByteBuffer(jenv, thread, sizeof(ServiceThreadRecord));
-	jobject jthread = (*jenv)->NewObject(jenv, jPiuThreadClass, jPiuThreadConstructor, jbytes);
-	xsAndroidException("Java: ServiceThreadCreate new jPiuThreadClass failed!");
-	thread->jthread = (*jenv)->NewGlobalRef(jenv, jthread);
-	(*jenv)->CallVoidMethod(jenv, jthread, jPiuThread_start);
-	(*jenv)->DeleteLocalRef(jenv, jthread);
-	(*jenv)->DeleteLocalRef(jenv, jbytes);
+	
+	xsTry {
+		pthread_mutex_init(&(thread->mutex), NULL);
+		pthread_mutex_lock(&(thread->mutex));
+		
+		jbytes = (*jenv)->NewDirectByteBuffer(jenv, thread, sizeof(ServiceThreadRecord));
+		jthread = (*jenv)->NewObject(jenv, jPiuThreadClass, jPiuThreadConstructor, jbytes);
+		xsAndroidException("Java: ServiceThreadCreate new jPiuThreadClass failed!");
+		thread->jthread = (*jenv)->NewGlobalRef(jenv, jthread);
+		(*jenv)->CallVoidMethod(jenv, jthread, jPiuThread_start);
+		(*jenv)->DeleteLocalRef(jenv, jthread);
+		jthread = NULL;
+		(*jenv)->DeleteLocalRef(jenv, jbytes);
+		jbytes = NULL;
+	}
+	xsCatch {
+		if (jthread)
+			(*jenv)->DeleteLocalRef(jenv, jthread);
+		if (jbytes)
+			(*jenv)->DeleteLocalRef(jenv, jbytes);
+		xsThrow(xsException);
+	}
 #elif mxLinux
 	g_mutex_init(&(thread->mutex));
 	g_mutex_lock(&(thread->mutex));
