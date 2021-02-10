@@ -982,6 +982,8 @@ void fxEchoInstance(txMachine* the, txSlot* theInstance, txInspectorNameList* th
 		case XS_CALLBACK_X_KIND:
 		case XS_CODE_KIND:
 		case XS_CODE_X_KIND:
+			if (aProperty->value.code.closures)
+				fxEchoPropertyInstance(the, theList, "(closures)", -1, C_NULL, XS_NO_ID, aProperty->flag, aProperty->value.code.closures);
 			fxEchoProperty(the, aProperty, theList, "(function)", -1, C_NULL);
 			aProperty = aProperty->next;
 			if ((aProperty->kind == XS_HOME_KIND) && (aProperty->value.home.object))
@@ -1036,6 +1038,8 @@ void fxEchoInstance(txMachine* the, txSlot* theInstance, txInspectorNameList* th
 		case XS_GLOBAL_KIND:
 			break;
 		case XS_PROMISE_KIND:
+           	fxEchoProperty(the, aProperty, theList, "(promise)", -1, C_NULL);
+			aProperty = aProperty->next;
 			break;
 		case XS_MAP_KIND:
 			aProperty = aProperty->next;
@@ -1345,6 +1349,14 @@ void fxEchoProperty(txMachine* the, txSlot* theProperty, txInspectorNameList* th
 			}
 			else
 					fxEcho(the, " value=\"NULL\"/>");
+			break;
+		case XS_PROMISE_KIND:
+			switch (theProperty->value.integer) {
+			case mxUndefinedStatus: fxEcho(the, " value=\"?\"/>"); break;
+			case mxPendingStatus: fxEcho(the, " value=\"pending\"/>"); break;
+			case mxFulfilledStatus: fxEcho(the, " value=\"fulfilled\"/>"); break;
+			case mxRejectedStatus: fxEcho(the, " value=\"rejected\"/>"); break;
+			}
 			break;
 		case XS_KEY_KIND:
 		case XS_KEY_X_KIND:
@@ -1990,6 +2002,22 @@ void fxBubble(txMachine* the, txInteger flags, void* message, txInteger length, 
 #endif
 }
 
+void fxFileEvalString(txMachine* the, txString string, txString tag)
+{
+	#ifdef mxDebug
+	if (fxIsConnected(the)) {
+		fxEchoStart(the);
+		fxEcho(the, "<eval path=\"");
+		fxEchoString(the, tag);
+		fxEcho(the, "\"");
+		fxEcho(the, ">");
+		fxEchoString(the, string);
+		fxEcho(the, "</eval>");
+		fxEchoStop(the);
+	}
+#endif
+}
+
 void fxReport(txMachine* the, txString theFormat, ...)
 {
 	c_va_list arguments;
@@ -2077,9 +2105,9 @@ void fxGenerateTag(void* console, txString buffer, txInteger bufferSize, txStrin
 {
 	txMachine* the = console;
 	if (path)
-		snprintf(buffer, bufferSize, "#%d@%s", the->tag, path);
+		c_snprintf(buffer, bufferSize, "#%d@%s", the->tag, path);
 	else
-		snprintf(buffer, bufferSize, "#%d", the->tag);
+		c_snprintf(buffer, bufferSize, "#%d", the->tag);
 	the->tag++;
 }
 

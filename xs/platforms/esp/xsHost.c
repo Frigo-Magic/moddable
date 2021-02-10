@@ -51,8 +51,8 @@
 	#if INSTRUMENT_CPULOAD
 		#include "driver/timer.h"
 
-		static uint16_t gCPUCounts[4];
-		static TaskHandle_t gIdles[2];
+		static uint16_t gCPUCounts[kTargetCPUCount * 2];
+		static TaskHandle_t gIdles[kTargetCPUCount];
 		static void IRAM_ATTR timer_group0_isr(void *para);
 	#endif
 #else
@@ -89,8 +89,12 @@
 	#endif
 		(char *)"System bytes free",
 	#if ESP32
-		(char *)"CPU 0",
-		(char *)"CPU 1",
+		#if kTargetCPUCount == 1
+			(char *)"CPU",
+		#else
+			(char *)"CPU 0",
+			(char *)"CPU 1",
+		#endif
 	#endif
 	};
 
@@ -110,7 +114,9 @@
 		(char *)" bytes",
 	#if ESP32
 		(char *)" percent",
-		(char *)" percent",
+		#if kTargetCPUCount > 1
+			(char *)" percent",
+		#endif
 	#endif
 	};
 #endif
@@ -1023,7 +1029,7 @@ txID fxFindModule(txMachine* the, txSlot* realm, txID moduleID, txSlot* slot)
 	txString slash;
 	txID id;
 
-	fxToStringBuffer(the, slot, name, sizeof(name));
+	fxToStringBuffer(the, slot, name, sizeof(name) - preparation->baseLength - 4);
 // #if MODDEF_XS_MODS
 // 	if (findMod(the, name, NULL)) {
 // 		c_strcpy(path, "/");
@@ -1048,11 +1054,20 @@ txID fxFindModule(txMachine* the, txSlot* realm, txID moduleID, txSlot* slot)
 		relative = 1;
 		search = 1;
 	}
+	slash = c_strrchr(name, '/');
+	if (!slash)
+		slash = name;
+	slash = c_strrchr(slash, '.');
+	if (slash && (!c_strcmp(slash, ".js") || !c_strcmp(slash, ".mjs")))
+		*slash = 0;
 	if (absolute) {
 		c_strcpy(path, preparation->base);
 		c_strcat(path, name + 1);
-		if (fxFindScript(the, realm, path, &id))
+		c_strcat(path, ".xsb");
+		if (fxFindScript(the, realm, path, &id)) {
+// 			fxReport(the, "ABSOLUTE %s\n", path);
 			return id;
+		}
 	}
 	if (relative && (moduleID != XS_NO_ID)) {
 		c_strcpy(path, fxGetKeyName(the, moduleID));
@@ -1070,8 +1085,11 @@ txID fxFindModule(txMachine* the, txSlot* realm, txID moduleID, txSlot* slot)
 		if (!c_strncmp(path, preparation->base, preparation->baseLength)) {
 			*slash = 0;
 			c_strcat(path, name + dot);
-			if (fxFindScript(the, realm, path, &id))
+			c_strcat(path, ".xsb");
+			if (fxFindScript(the, realm, path, &id)) {
+// 				fxReport(the, "RELATIVE %s\n", path);
 				return id;
+			}
 		}
 #if 0
 		*slash = 0;
@@ -1086,8 +1104,10 @@ txID fxFindModule(txMachine* the, txSlot* realm, txID moduleID, txSlot* slot)
 		slot = slot->value.reference->next;
 		while (slot) {
 			txSlot* key = fxGetKey(the, slot->ID);
-			if (key && !c_strcmp(key->value.key.string, name))
+			if (key && !c_strcmp(key->value.key.string, name)) {
+// 				fxReport(the, "SEARCH %s\n", name);
 				return slot->value.symbol;
+			}
 			slot = slot->next;
 		}
 	}
@@ -1142,11 +1162,6 @@ void fxLoadModule(txMachine* the, txSlot* realm, txID moduleID)
 #endif
 }
 
-void fxMarkHost(txMachine* the, txMarkRoot markRoot)
-{
-	the->host = C_NULL;
-}
-
 txScript* fxParseScript(txMachine* the, void* stream, txGetter getter, txUnsigned flags)
 {
 	txParser _parser;
@@ -1156,6 +1171,15 @@ txScript* fxParseScript(txMachine* the, void* stream, txGetter getter, txUnsigne
 	fxInitializeParser(parser, the, the->parserBufferSize, the->parserTableModulo);
 	parser->firstJump = &jump;
 	if (c_setjmp(jump.jmp_buf) == 0) {
+#ifdef mxDebug
+		if (fxIsConnected(the)) {
+			char tag[16];
+			flags |= mxDebugFlag;
+			fxGenerateTag(the, tag, sizeof(tag), C_NULL);
+			fxFileEvalString(the, ((txStringStream*)stream)->slot->value.string, tag);
+			parser->path = fxNewParserSymbol(parser, tag);
+		}
+#endif
 		fxParserTree(parser, stream, getter, flags, NULL);
 		fxParserHoist(parser);
 		fxParserBind(parser);
@@ -1167,10 +1191,6 @@ txScript* fxParseScript(txMachine* the, void* stream, txGetter getter, txUnsigne
 #endif
 	fxTerminateParser(parser);
 	return script;
-}
-
-void fxSweepHost(txMachine* the)
-{
 }
 
 /*
@@ -1238,6 +1258,7 @@ static int32_t modInstrumentationCPU0(void *theIn)
 	return result;
 }
 
+#if kTargetCPUCount > 1
 static int32_t modInstrumentationCPU1(void *theIn)
 {
 	int32_t result, total = (gCPUCounts[2] + gCPUCounts[3]);
@@ -1247,6 +1268,7 @@ static int32_t modInstrumentationCPU1(void *theIn)
 	gCPUCounts[2] = gCPUCounts[3] = 0;
 	return result;
 }
+#endif
 #endif
 
 #ifdef mxDebug
@@ -1279,8 +1301,10 @@ void espInitInstrumentation(txMachine *the)
 
 #if INSTRUMENT_CPULOAD
 	modInstrumentationSetCallback(CPU0, modInstrumentationCPU0);
+#if kTargetCPUCount > 1
 	modInstrumentationSetCallback(CPU1, modInstrumentationCPU1);
-
+#endif
+	
 	timer_config_t config = {
 		.divider = 16,
 		.counter_dir = TIMER_COUNT_UP,
@@ -1359,11 +1383,17 @@ void espInstrumentMachineReset(txMachine *the)
 #if INSTRUMENT_CPULOAD
 void IRAM_ATTR timer_group0_isr(void *para)
 {
+#if kTargetCPUCount == 2
 	TIMERG0.int_clr_timers.t0 = 1;
+#else
+	TIMERG0.int_clr.t0 = 1;
+#endif
     TIMERG0.hw_timer[TIMER_0].config.alarm_en = TIMER_ALARM_EN;
 
 	gCPUCounts[0 + (xTaskGetCurrentTaskHandleForCPU(0) == gIdles[0])] += 1;
+#if kTargetCPUCount > 1
 	gCPUCounts[2 + (xTaskGetCurrentTaskHandleForCPU(1) == gIdles[1])] += 1;
+#endif
 }
 #endif
 #endif
@@ -1381,6 +1411,7 @@ uint32_t modMilliseconds(void)
 	64-bit atomics
 */
 
+#if kTargetCPUCount == 2
 bool __atomic_compare_exchange_8(txU8 *ptr, txU8 *expected, txU8 desired, bool weak, int success_memorder, int failure_memorder)
 {
 	modCriticalSectionBegin();
@@ -1491,6 +1522,7 @@ txU8 __atomic_fetch_xor_8(txU8 *ptr, txU8 val, int memorder)
 
 	return result;
 }
+#endif // kTargetCPUCount == 2
 
 /*
 	messages
@@ -1598,9 +1630,13 @@ void modMessageService(xsMachine *the, int maxDelayMS)
 	}
 }
 
+#ifndef modTaskGetCurrent
+	#error make sure MOD_TASKS and modTaskGetCurrent are defined
+#endif
+
 void modMachineTaskInit(xsMachine *the)
 {
-	the->task = xTaskGetCurrentTaskHandle();
+	the->task = (void *)modTaskGetCurrent();
 	the->msgQueue = xQueueCreate(10, sizeof(modMessageRecord));
 }
 
